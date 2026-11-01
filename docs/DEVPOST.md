@@ -14,7 +14,7 @@ Held requests go to a human approval queue, from the dashboard, the CLI or the S
 
 A built-in red team replays 14 known attacks and 4 honest payments against any policy and scores it (14/14 blocked, 4/4 cleared on the demo policy). It exits non-zero when a policy lets an attack through, so teams can run it in CI on their policy file.
 
-A small SDK wraps any payment function so it can only run when policy allows, and gives agents a tool that returns readable results instead of crashing. A live dashboard styled as a paper ledger lets you act as the agent and watch Leash rule on your request.
+A small SDK wraps any payment function so it can only run when policy allows, and gives agents a tool that returns readable results instead of crashing. A modern light and dark dashboard with a one-click replay of the agent's morning lets you watch every ruling land, or act as the agent yourself and attack the policy.
 
 ## How we built it
 Python, standard library only, zero dependencies. Rules are deterministic and live in a policy file, so decisions are explainable and auditable: no model decides whether money moves. The dashboard is a single self-contained HTML file. Built with Mel.
@@ -23,7 +23,7 @@ Python, standard library only, zero dependencies. Rules are deterministic and li
 Keeping decisions explainable when several rules fire at once (any deny wins, a hold needs a human). Making look-alike detection catch real tricks without flagging genuine new vendors. Letting humans resolve held payments without ever editing history, by appending to the chain instead.
 
 ## Accomplishments
-A 14-request scenario that exercises every rule end to end, an attack scorecard that proves the policy rather than just claiming it, 30 automated tests, tamper detection that points to the exact entry, and a dashboard that looks like nothing else in the track.
+A 14-request scenario that exercises every rule end to end, an attack scorecard that proves the policy rather than just claiming it, 30 automated tests, tamper detection that points to the exact entry, and a polished dashboard with replay, charts and a live attack desk.
 
 ## What's next
 A drop-in proxy for real payment APIs and an MCP wrapper for agent frameworks, human approval over Slack or email, per-agent policies, and an optional LLM intent check as a second layer on top of the rules.

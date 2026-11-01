@@ -11,7 +11,7 @@ Every payment an agent tries to make is read, ruled on and explained *before* mo
 ![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
-<img src="docs/dashboard.png" alt="Leash dashboard, styled as a paper ledger with rubber stamps" width="820">
+<img src="docs/dashboard.png" alt="Leash dashboard: flow diagram, spend chart, protection score and red-team results" width="820">
 
 [Open the sample report](docs/sample-report.html) (download and open in a browser)
 
@@ -44,7 +44,9 @@ Each request also gets a **0-100 risk score**. Rules decide, models don't: every
 
 - **Built-in red team.** `python -m leash redteam` replays 14 known attacks and 4 honest payments against your policy and scores it. Today: **14/14 attacks blocked, 4/4 honest payments cleared**. It exits non-zero if a policy lets an attack through, so it works as a CI check on your policy file.
 - **Agent SDK.** Wrap your payment function so it can only run when policy allows it (see below).
-- **Live desk.** A dashboard where you act as the agent: pick an exhibit (hidden instruction, look-alike vendor, oversized transfer) and watch Leash rule on it.
+- **Modern dashboard.** Light and dark themes, an animated flow diagram, a spend-versus-budget chart, a protection-score ring, a searchable ledger with CSV export and keyboard shortcuts (`/` search, `t` theme, `r` replay).
+- **Replay.** One click replays the agent's morning request by request, and every chart and counter updates as each ruling lands.
+- **Live desk.** Act as the agent: pick an attack preset (hidden instruction, look-alike vendor, oversized transfer) and watch Leash rule on it.
 - **Human approval queue.** HOLD requests are approved or rejected from the dashboard, the CLI or the SDK. The human decision is recorded in the chain.
 - **Tamper-evident audit log.** Each entry stores the hash of the previous one. Edit or delete any past entry and `verify` points to the exact entry that broke.
 - **Self-contained HTML report** you can email or archive, with CSV export.
@@ -161,7 +163,7 @@ leash/
   audit.py       hash-chained log, verification, human resolution
   redteam.py     the attack and honest-payment suite
   sdk.py         Guard: wrap payment functions and agent tools
-  dashboard.py   data model and the self-contained HTML ledger
+  dashboard.py   data model and the self-contained HTML dashboard (dashboard.html is its template)
   server.py      live HTTP server and API
   cli.py         command line interface
 examples/        policy, the 14-request demo, agent integration example
