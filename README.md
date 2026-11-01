@@ -189,7 +189,7 @@ leash/
   cli.py         command line interface
 examples/        policy, the 14-request demo, agent integration example
 tests/           unit and integration tests
-docs/            screenshot, sample report, hackathon write-up
+docs/            screenshots, sample report, hackathon write-up, demo video script
 ```
 
 ## Roadmap
