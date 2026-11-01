@@ -14,6 +14,8 @@ Held requests go to a human approval queue, from the dashboard, the CLI or the S
 
 A built-in red team replays 14 known attacks and 4 honest payments against any policy and scores it (14/14 blocked, 4/4 cleared on the demo policy). It exits non-zero when a policy lets an attack through, so teams can run it in CI on their policy file.
 
+A what-if policy simulator lets a finance team drag limits and see the red-team score and the day's rulings recompute instantly. An MCP server gives any MCP-capable agent a check-before-paying tool (and deliberately no way to approve its own hold), and webhook alerts post to Slack the moment a payment is held or a security flag fires.
+
 A small SDK wraps any payment function so it can only run when policy allows, and gives agents a tool that returns readable results instead of crashing. A modern light and dark dashboard with a one-click replay of the agent's morning lets you watch every ruling land, or act as the agent yourself and attack the policy.
 
 ## How we built it
@@ -23,10 +25,10 @@ Python, standard library only, zero dependencies. Rules are deterministic and li
 Keeping decisions explainable when several rules fire at once (any deny wins, a hold needs a human). Making look-alike detection catch real tricks without flagging genuine new vendors. Letting humans resolve held payments without ever editing history, by appending to the chain instead.
 
 ## Accomplishments
-A 14-request scenario that exercises every rule end to end, an attack scorecard that proves the policy rather than just claiming it, 30 automated tests, tamper detection that points to the exact entry, and a polished dashboard with replay, charts and a live attack desk.
+A 14-request scenario that exercises every rule end to end, an attack scorecard that proves the policy rather than just claiming it, 40 automated tests, tamper detection that points to the exact entry, and a polished dashboard with replay, charts and a live attack desk.
 
 ## What's next
-A drop-in proxy for real payment APIs and an MCP wrapper for agent frameworks, human approval over Slack or email, per-agent policies, and an optional LLM intent check as a second layer on top of the rules.
+A drop-in proxy for real payment APIs, approve and reject buttons inside the Slack alert, per-agent policies, and an optional LLM intent check as a second layer on top of the rules.
 
 ## Built with
 Python, Mel

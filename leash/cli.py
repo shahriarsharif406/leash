@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -59,6 +60,11 @@ def main(argv=None):
     p.add_argument("--empty", action="store_true", help="start without the demo requests")
     p.add_argument("--out", default="out"), p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8765)
+    p.add_argument("--webhook", default=os.environ.get("LEASH_WEBHOOK"), help="POST an alert here when a payment is held or flagged (Slack-compatible)")
+    p = sub.add_parser("mcp", help="MCP server (stdio) so any MCP agent must ask Leash before paying")
+    p.add_argument("--policy", default=str(EXAMPLES / "policy.json"))
+    p.add_argument("--log", default="out/mcp-audit.log")
+    p.add_argument("--webhook", default=os.environ.get("LEASH_WEBHOOK"))
     a = ap.parse_args(argv)
 
     try:
@@ -89,7 +95,11 @@ def main(argv=None):
             return 0 if res["blocked"] == res["attacks"] and res["legit_ok"] == res["legit"] else 1
         elif a.cmd == "serve":
             from .server import serve
-            serve(a.policy, None if a.empty else a.requests, a.out, a.host, a.port)
+            serve(a.policy, None if a.empty else a.requests, a.out, a.host, a.port, a.webhook)
+        elif a.cmd == "mcp":
+            from .mcp import run
+            Path(a.log).parent.mkdir(parents=True, exist_ok=True)
+            run(a.policy, a.log, a.webhook)
     except (PolicyError, ValueError, FileNotFoundError, json.JSONDecodeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

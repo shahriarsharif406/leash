@@ -11,6 +11,7 @@ from pathlib import Path
 
 from . import audit
 from .engine import Engine, validate_policy
+from .notify import Notifier
 
 
 class PaymentBlocked(Exception):
@@ -26,15 +27,16 @@ class NeedsHumanApproval(PaymentBlocked):
 
 
 class Guard:
-    def __init__(self, policy, log_path=None):
+    def __init__(self, policy, log_path=None, webhook=None):
+        self.notifier = Notifier(webhook)
         self.engine = Engine(validate_policy(policy))
         self.entries = []
         self.log_path = Path(log_path) if log_path else None
         self._held = {}
 
     @classmethod
-    def from_file(cls, policy_path, log_path=None):
-        return cls(json.loads(Path(policy_path).read_text(encoding="utf-8")), log_path)
+    def from_file(cls, policy_path, log_path=None, webhook=None):
+        return cls(json.loads(Path(policy_path).read_text(encoding="utf-8")), log_path, webhook)
 
     def _save(self):
         if self.log_path:
@@ -44,6 +46,7 @@ class Guard:
         """Evaluate and log a request without paying. Returns the audit entry."""
         entry = audit.append(self.entries, self.engine.evaluate(request))
         self._save()
+        self.notifier.notify(entry)
         return entry
 
     def pay(self, request, executor):

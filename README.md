@@ -45,6 +45,9 @@ Each request also gets a **0-100 risk score**. Rules decide, models don't: every
 - **Built-in red team.** `python -m leash redteam` replays 14 known attacks and 4 honest payments against your policy and scores it. Today: **14/14 attacks blocked, 4/4 honest payments cleared**. It exits non-zero if a policy lets an attack through, so it works as a CI check on your policy file.
 - **Agent SDK.** Wrap your payment function so it can only run when policy allows it (see below).
 - **Modern dashboard.** Light and dark themes, an animated flow diagram, a spend-versus-budget chart, a protection-score ring, a searchable ledger with CSV export and keyboard shortcuts (`/` search, `t` theme, `r` replay).
+- **Policy simulator.** Drag the cap, auto-approve limit, budget or velocity sliders in the live dashboard and see the red-team score and the day's rulings recompute instantly. Nothing on the server changes, and you can copy the result as policy JSON.
+- **MCP server.** `python -m leash mcp` gives any MCP-capable agent a `leash_check_payment` tool. Approving a hold is deliberately not a tool: an agent can never release its own payment.
+- **Webhook alerts.** `--webhook URL` (or `LEASH_WEBHOOK`) posts a Slack-compatible message the moment a payment is held or a security flag fires. A dead webhook never delays or breaks a decision.
 - **Replay.** One click replays the agent's morning request by request, and every chart and counter updates as each ruling lands.
 - **Live desk.** Act as the agent: pick an attack preset (hidden instruction, look-alike vendor, oversized transfer) and watch Leash rule on it.
 - **Human approval queue.** HOLD requests are approved or rejected from the dashboard, the CLI or the SDK. The human decision is recorded in the chain.
@@ -72,6 +75,20 @@ python -m leash verify out/audit.log                         # check the log was
 python -m leash resolve out/audit.log 4 approve --by alice   # human approves a held request
 python -m leash report out/audit.log examples/policy.json    # re-render the HTML report
 python -m leash serve --empty                                # live server with no demo data
+```
+
+## Plug into any MCP agent
+
+```bash
+python -m leash mcp --policy examples/policy.json --log out/mcp-audit.log
+```
+
+Add it to your MCP client (see `examples/mcp-config.json`). The agent gets four tools: `leash_check_payment` (call before any payment; returns APPROVE, HOLD or DENY with reasons and an explicit instruction), `leash_pending`, `leash_policy` and `leash_verify_log`. Humans release holds with `python -m leash resolve` or the dashboard.
+
+## Alerts
+
+```bash
+python -m leash serve --webhook https://hooks.slack.com/services/XXX/YYY/ZZZ
 ```
 
 ## Use it from agent code
@@ -138,6 +155,7 @@ A policy, with the optional fields shown (the demo policy in `examples/policy.js
 |---|---|
 | `POST /api/evaluate` | body: a payment request. Returns decision, risk score and reasons |
 | `POST /api/resolve` | body: `{"ref": 4, "action": "approve", "by": "alice"}` |
+| `POST /api/simulate` | body: limits to try, e.g. `{"per_txn_cap": 300}`. Returns the red-team score and a replay |
 | `GET /api/state` | full dashboard data as JSON |
 | `GET /api/redteam` | the red-team scorecard for the active policy |
 | `GET /api/log` | the raw audit log |
@@ -153,7 +171,7 @@ A policy, with the optional fields shown (the demo policy in `examples/policy.js
 python -m unittest discover -s tests -v
 ```
 
-30 tests cover each rule, the circuit breaker, structuring, the red-team suite, policy validation, hash-chain tamper and deletion detection, human resolution, the SDK, the CLI and the live HTTP API.
+40 tests cover each rule, the circuit breaker, structuring, the red-team suite, policy validation, hash-chain tamper and deletion detection, human resolution, the SDK, the CLI, the live HTTP API, the policy simulator, webhook alerts and the MCP protocol.
 
 ## Project layout
 
@@ -163,6 +181,9 @@ leash/
   audit.py       hash-chained log, verification, human resolution
   redteam.py     the attack and honest-payment suite
   sdk.py         Guard: wrap payment functions and agent tools
+  mcp.py         MCP stdio server for agent frameworks
+  simulate.py    what-if policy simulator
+  notify.py      webhook alerts
   dashboard.py   data model and the self-contained HTML dashboard (dashboard.html is its template)
   server.py      live HTTP server and API
   cli.py         command line interface
@@ -173,8 +194,8 @@ docs/            screenshot, sample report, hackathon write-up
 
 ## Roadmap
 
-- Drop-in proxy for real payment APIs (Stripe, bank APIs) and an MCP wrapper for agent frameworks
-- Human approval over chat (Slack, email)
+- Drop-in proxy for real payment APIs (Stripe, bank APIs)
+- Approve and reject buttons inside the Slack alert itself
 - Per-agent policies and policy-as-code review
 - Optional LLM intent check as a second layer on top of the rules, never replacing them
 

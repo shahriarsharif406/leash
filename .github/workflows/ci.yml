@@ -26,3 +26,6 @@ jobs:
           python -m leash verify out/audit.log
       - name: Agent integration example
         run: python examples/agent_integration.py
+      - name: MCP server smoke test
+        run: |
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | python -m leash mcp --log out/mcp.log | grep -q leash_check_payment

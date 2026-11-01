@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "leash": {
+      "command": "python",
+      "args": ["-m", "leash", "mcp", "--policy", "examples/policy.json", "--log", "out/mcp-audit.log"],
+      "env": { "LEASH_WEBHOOK": "https://hooks.slack.com/services/XXX/YYY/ZZZ" }
+    }
+  }
+}

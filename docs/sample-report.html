@@ -124,6 +124,15 @@ footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);color:v
 @media(max-width:980px){.hero{grid-template-columns:1fr;padding-top:34px}.s3,.s4,.s5,.s6,.s7,.s8{grid-column:span 6}.rtgrid{grid-template-columns:1fr 1fr}.links{display:none}.detail .cols,.r3{grid-template-columns:1fr}}
 @media(max-width:640px){.s3,.s4,.s5,.s6,.s7,.s8{grid-column:span 12}.rtgrid{grid-template-columns:1fr}.hm{display:none}.hbar{grid-template-columns:100px 1fr 24px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.sim{display:grid;grid-template-columns:1.2fr 1fr;gap:28px}
+.sl{margin:0 0 16px}.sl .top{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);font-weight:500;margin-bottom:6px}.sl .top b{color:var(--text);font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:99px;background:var(--surface2);border:1px solid var(--line);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:3px solid var(--surface);box-shadow:0 2px 8px rgba(91,91,240,.45);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:3px solid var(--surface);cursor:pointer}
+.simout .score{font-size:44px;font-weight:750;letter-spacing:-.04em;line-height:1}
+.simout .row{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.simout ul{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:13.5px}
+@media(max-width:980px){.sim{grid-template-columns:1fr}}
 </style></head>
 <body>
 <nav><div class="nav">
@@ -177,6 +186,7 @@ footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);color:v
     <div class="card s7"><h3>Why requests were flagged</h3><div class="sub">Findings across all requests</div><div id="why"></div></div>
 
     <div class="card s12" id="deskCard"></div>
+    <div class="card s12" id="simCard"></div>
   </div>
 
   <section class="sec" id="redteam"><h2>Red team</h2><p class="lede">Fourteen known attacks and four honest payments replayed against the policy each time this page is built. A good firewall stops the first group without blocking the second. Click a card for the details.</p><div class="rtgrid" id="rtGrid"></div></section>
@@ -228,7 +238,7 @@ function render(){
   const rt = D.redteam; setNum($('#kept'), c.blocked, money); $('#ringTxt').textContent = rt.blocked+'/'+rt.attacks;
   $('#ringArc').setAttribute('stroke-dasharray', (2*Math.PI*52*(rt.attacks?rt.blocked/rt.attacks:0))+' 400');
   const lp = $('#legitPill'); lp.className = 'pill '+(rt.legit_ok===rt.legit?'ok':'deny'); lp.textContent = rt.legit_ok+'/'+rt.legit+' honest payments cleared';
-  chart(vis); mix(c); why(c); desk(); redteam(); ledger(vis); chain(vis);
+  chart(vis); mix(c); why(c); desk(); simUI(); redteam(); ledger(vis); chain(vis);
 }
 function chart(vis){
   const W=720,H=230,P={l:46,r:16,t:14,b:26}, B=D.policy.daily_budget, N=Math.max(D.entries.length,2), ymax=Math.max(B*1.15,10);
@@ -268,6 +278,30 @@ function desk(){
     if (j.error){ box.innerHTML = '<span style="color:var(--red)">'+esc(j.error)+'</span>'; return; }
     box.innerHTML = stamp(j.decision)+' <span class="num" style="margin-left:8px">risk '+j.risk+'/100</span><ul>'+(j.reasons.length?j.reasons.map(x=>'<li>'+esc(x.text)+'</li>').join(''):'<li>Within policy. Entered in the ledger.</li>')+'</ul>';
     toast(LAB[j.decision]+': '+body.payee); await refresh(); };
+}
+const SIM=[['per_txn_cap','Per-transaction cap',0,2000,10,true],['approval_above','Auto-approve up to',0,2000,10,true],['daily_budget','Daily budget',0,3000,50,true],['max_requests_per_payee_per_hour','Max requests per payee per hour',1,10,1,false],['security_flags_before_freeze','Security flags before freeze',1,10,1,false]];
+let simT=null;
+function simUI(){
+  const el=$('#simCard'); if(!D.live){ el.style.display='none'; return; } el.style.display='';
+  if(el.dataset.built) return; el.dataset.built='1'; const p=D.policy;
+  el.innerHTML='<h3>Policy simulator</h3><div class="sub">Move a limit and see at once how the red team and today\'s requests would be ruled. Nothing is changed on the server.</div><div class="sim"><div>'
+   +SIM.map(x=>'<div class="sl"><div class="top"><span>'+x[1]+'</span><b id="v_'+x[0]+'"></b></div><input type="range" id="r_'+x[0]+'" min="'+x[2]+'" max="'+x[3]+'" step="'+x[4]+'" value="'+p[x[0]]+'"></div>').join('')
+   +'<div style="display:flex;gap:8px"><button class="btn sm" id="simReset" type="button">Reset to active policy</button><button class="btn sm" id="simCopy" type="button">Copy as JSON</button></div></div><div class="simout" id="simOut"></div></div>';
+  el.oninput=e=>{ if(e.target.type==='range'){ clearTimeout(simT); simT=setTimeout(simRun,120); simLabels(); } };
+  $('#simReset').onclick=()=>{ SIM.forEach(x=>$('#r_'+x[0]).value=D.policy[x[0]]); simLabels(); simRun(); };
+  $('#simCopy').onclick=()=>{ const o=Object.assign({},D.policy); SIM.forEach(x=>o[x[0]]=+$('#r_'+x[0]).value); const t=JSON.stringify(o,null,2); try{ navigator.clipboard.writeText(t); toast('Policy JSON copied'); }catch(e){ toast('Copy not available'); } };
+  simLabels(); simRun();
+}
+function simVals(){ const o={}; SIM.forEach(x=>o[x[0]]=+$('#r_'+x[0]).value); return o; }
+function simLabels(){ SIM.forEach(x=>{ const v=+$('#r_'+x[0]).value; $('#v_'+x[0]).textContent = x[5]?money(v):v; }); }
+async function simRun(){
+  const r=await fetch('/api/simulate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(simVals())}), j=await r.json(), o=$('#simOut');
+  if(j.error){ o.innerHTML='<div class="pill deny">'+esc(j.error)+'</div><div class="sub" style="margin-top:8px">Auto-approve limit cannot exceed the per-transaction cap.</div>'; return; }
+  const rt=j.redteam, good=rt.blocked===rt.attacks&&rt.legit_ok===rt.legit, c=j.replay.counts;
+  o.innerHTML='<div class="sub" style="margin:0 0 6px">Red-team result</div><div class="score" style="color:'+(good?'var(--green)':'var(--red)')+'">'+rt.blocked+'/'+rt.attacks+'</div><div class="sub">attacks blocked &middot; '+rt.legit_ok+'/'+rt.legit+' honest payments cleared</div>'
+   +'<div class="row"><span class="pill ok">'+c.APPROVE+' approved</span><span class="pill hold">'+c.HOLD+' held</span><span class="pill deny">'+c.DENY+' denied</span></div>'
+   +'<div class="sub">Today\'s requests: '+money(j.replay.spent)+' would be paid out; '+(j.replay.changed?'<b style="color:var(--amber)">'+j.replay.changed+' rulings change</b>':'no rulings change')+'.</div>'
+   +(j.failed.length?'<ul>'+j.failed.map(f=>'<li><b>'+esc(f.name)+'</b> '+(f.kind==='attack'?'would get through':'would be wrongly stopped')+'</li>').join('')+'</ul>':'<div class="sub" style="margin-top:8px;color:var(--green)">Every scenario still passes.</div>');
 }
 function redteam(){
   $('#rtGrid').innerHTML = D.redteam.scenarios.map(s=>{ const open = D._rt===s.id;

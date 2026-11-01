@@ -6,12 +6,14 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import audit, dashboard
+from . import audit, dashboard, simulate
+from .notify import Notifier
 from .engine import Engine, validate_policy
 
 
 class Store:
-    def __init__(self, policy_path, requests_path, out_dir):
+    def __init__(self, policy_path, requests_path, out_dir, webhook=None):
+        self.notifier = Notifier(webhook)
         self.policy = validate_policy(json.loads(Path(policy_path).read_text(encoding="utf-8")))
         self.requests_path = requests_path
         self.log_path = Path(out_dir) / "audit.log"
@@ -34,6 +36,7 @@ class Store:
         with self.lock:
             entry = audit.append(self.entries, self.engine.evaluate(req))
             self._save()
+            self.notifier.notify(entry)
             return entry
 
     def resolve(self, ref, action, by):
@@ -44,6 +47,10 @@ class Store:
                 self.engine.spent += target["request"]["amount"]
             self._save()
             return entry
+
+    def simulate(self, overrides):
+        with self.lock:
+            return simulate.simulate(self.policy, overrides, self.entries)
 
     def state(self):
         with self.lock:
@@ -88,6 +95,8 @@ def make_handler(store):
                     self._send(200, {k: e[k] for k in ("seq", "decision", "risk", "risk_level", "reasons", "hash")})
                 elif self.path == "/api/resolve":
                     self._send(200, store.resolve(int(data["ref"]), data["action"], str(data.get("by", "human"))))
+                elif self.path == "/api/simulate":
+                    self._send(200, store.simulate(data))
                 elif self.path == "/api/reset":
                     store.reset()
                     self._send(200, {"ok": True})
@@ -99,10 +108,12 @@ def make_handler(store):
     return Handler
 
 
-def serve(policy_path, requests_path, out_dir, host="127.0.0.1", port=8765):
-    store = Store(policy_path, requests_path, out_dir)
+def serve(policy_path, requests_path, out_dir, host="127.0.0.1", port=8765, webhook=None):
+    store = Store(policy_path, requests_path, out_dir, webhook)
     httpd = ThreadingHTTPServer((host, port), make_handler(store))
     print(f"Leash dashboard running at http://{host}:{port}  (Ctrl+C to stop)")
+    if webhook:
+        print("Webhook alerts on for held and flagged payments")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
