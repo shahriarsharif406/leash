@@ -1,0 +1,9 @@
+{
+  "daily_budget": 500.00,
+  "per_txn_cap": 500.00,
+  "approval_above": 250.00,
+  "max_requests_per_payee_per_hour": 2,
+  "security_flags_before_freeze": 3,
+  "blocked_categories": ["gift cards", "crypto", "gambling"],
+  "payee_allowlist": ["CloudHost", "OfficeSupplies Inc", "Amazon Business", "Marketing Agency", "DataAPI Co"]
+}

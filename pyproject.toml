@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "leash"
+version = "1.0.0"
+description = "A policy firewall between AI agents and money"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = []
+
+[project.scripts]
+leash = "leash.cli:main"
+
+[tool.setuptools]
+packages = ["leash"]
