@@ -133,6 +133,9 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .simout .row{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
 .simout ul{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:13.5px}
 @media(max-width:980px){.sim{grid-template-columns:1fr}}
+.code{position:relative;margin-top:12px}
+.code pre{margin:0;font:12.5px/1.65 var(--mono);white-space:pre;overflow-x:auto;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:16px 18px;color:var(--text)}
+.code .btn{position:absolute;top:10px;right:10px}
 </style></head>
 <body>
 <nav><div class="nav">
@@ -187,6 +190,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 
     <div class="card s12" id="deskCard"></div>
     <div class="card s12" id="simCard"></div>
+    <div class="card s12" id="intCard"></div>
   </div>
 
   <section class="sec" id="redteam"><h2>Red team</h2><p class="lede">Fourteen known attacks and four honest payments replayed against the policy each time this page is built. A good firewall stops the first group without blocking the second. Click a card for the details.</p><div class="rtgrid" id="rtGrid"></div></section>
@@ -238,7 +242,7 @@ function render(){
   const rt = D.redteam; setNum($('#kept'), c.blocked, money); $('#ringTxt').textContent = rt.blocked+'/'+rt.attacks;
   $('#ringArc').setAttribute('stroke-dasharray', (2*Math.PI*52*(rt.attacks?rt.blocked/rt.attacks:0))+' 400');
   const lp = $('#legitPill'); lp.className = 'pill '+(rt.legit_ok===rt.legit?'ok':'deny'); lp.textContent = rt.legit_ok+'/'+rt.legit+' honest payments cleared';
-  chart(vis); mix(c); why(c); desk(); simUI(); redteam(); ledger(vis); chain(vis);
+  chart(vis); mix(c); why(c); desk(); simUI(); if(!$('#intCard').dataset.b){ $('#intCard').dataset.b=1; integ(); } redteam(); ledger(vis); chain(vis);
 }
 function chart(vis){
   const W=720,H=230,P={l:46,r:16,t:14,b:26}, B=D.policy.daily_budget, N=Math.max(D.entries.length,2), ymax=Math.max(B*1.15,10);
@@ -302,6 +306,20 @@ async function simRun(){
    +'<div class="row"><span class="pill ok">'+c.APPROVE+' approved</span><span class="pill hold">'+c.HOLD+' held</span><span class="pill deny">'+c.DENY+' denied</span></div>'
    +'<div class="sub">Today\'s requests: '+money(j.replay.spent)+' would be paid out; '+(j.replay.changed?'<b style="color:var(--amber)">'+j.replay.changed+' rulings change</b>':'no rulings change')+'.</div>'
    +(j.failed.length?'<ul>'+j.failed.map(f=>'<li><b>'+esc(f.name)+'</b> '+(f.kind==='attack'?'would get through':'would be wrongly stopped')+'</li>').join('')+'</ul>':'<div class="sub" style="margin-top:8px;color:var(--green)">Every scenario still passes.</div>');
+}
+const SNIP={
+ curl:'# Ask Leash before paying (live server: python -m leash serve)\ncurl -s -X POST http://127.0.0.1:8765/api/evaluate \\\n  -H "content-type: application/json" \\\n  -d \'{"agent":"procurement-bot","payee":"CloudHost","amount":95,"category":"hosting","memo":"Monthly bill"}\'\n\n# {"decision":"APPROVE","risk":0,"reasons":[],...}',
+ python:'from leash.sdk import Guard\n\nguard = Guard.from_file("policy.json", log_path="audit.log")\n\n# Raises PaymentBlocked or NeedsHumanApproval instead of paying\nguard.pay({"payee": "CloudHost", "amount": 95, "category": "hosting"},\n          executor=send_payment)\n\n# Or hand the agent a tool that never raises\npay_tool = guard.tool(send_payment, agent="procurement-bot")',
+ mcp:'{\n  "mcpServers": {\n    "leash": {\n      "command": "python",\n      "args": ["-m", "leash", "mcp", "--policy", "policy.json", "--log", "out/mcp-audit.log"]\n    }\n  }\n}\n\n// The agent gets leash_check_payment. It can never approve its own hold.'};
+let snipTab='curl';
+function integ(){
+  const el=$('#intCard');
+  el.innerHTML='<h3>Put Leash in front of your agent</h3><div class="sub">Three ways in. Pick one, copy it, and your agent can no longer spend unchecked.</div><div class="seg" id="snipSeg" style="display:inline-flex">'
+   +[['curl','HTTP API'],['python','Python SDK'],['mcp','MCP agent']].map(x=>'<button class="'+(snipTab===x[0]?'on':'')+'" data-snip="'+x[0]+'">'+x[1]+'</button>').join('')
+   +'</div><div class="code"><pre id="snipPre"></pre><button class="btn sm" id="snipCopy" type="button">Copy</button></div>';
+  $('#snipPre').textContent=SNIP[snipTab];
+  $('#snipSeg').onclick=e=>{ const b=e.target.closest('button'); if(b){ snipTab=b.dataset.snip; integ(); } };
+  $('#snipCopy').onclick=()=>{ try{ navigator.clipboard.writeText(SNIP[snipTab]); toast('Copied'); }catch(e){ toast('Copy not available'); } };
 }
 function redteam(){
   $('#rtGrid').innerHTML = D.redteam.scenarios.map(s=>{ const open = D._rt===s.id;

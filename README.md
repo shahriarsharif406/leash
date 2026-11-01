@@ -48,6 +48,7 @@ Each request also gets a **0-100 risk score**. Rules decide, models don't: every
 - **Policy simulator.** Drag the cap, auto-approve limit, budget or velocity sliders in the live dashboard and see the red-team score and the day's rulings recompute instantly. Nothing on the server changes, and you can copy the result as policy JSON.
 - **MCP server.** `python -m leash mcp` gives any MCP-capable agent a `leash_check_payment` tool. Approving a hold is deliberately not a tool: an agent can never release its own payment.
 - **Webhook alerts.** `--webhook URL` (or `LEASH_WEBHOOK`) posts a Slack-compatible message the moment a payment is held or a security flag fires. A dead webhook never delays or breaks a decision.
+- **Integration snippets.** A copy-paste panel (HTTP API, Python SDK, MCP config) right in the dashboard.
 - **Replay.** One click replays the agent's morning request by request, and every chart and counter updates as each ruling lands.
 - **Live desk.** Act as the agent: pick an attack preset (hidden instruction, look-alike vendor, oversized transfer) and watch Leash rule on it.
 - **Human approval queue.** HOLD requests are approved or rejected from the dashboard, the CLI or the SDK. The human decision is recorded in the chain.
