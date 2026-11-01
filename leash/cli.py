@@ -6,7 +6,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import audit, dashboard, __version__
+from . import audit, dashboard, redteam, __version__
 from .engine import Engine, PolicyError, validate_policy
 
 EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
@@ -51,6 +51,8 @@ def main(argv=None):
     p.add_argument("--by", default="cli"), p.add_argument("--note", default="")
     p = sub.add_parser("report", help="re-render report.html from an audit log")
     p.add_argument("log"), p.add_argument("policy"), p.add_argument("--out", default=None)
+    p = sub.add_parser("redteam", help="replay known attacks and honest payments against a policy")
+    p.add_argument("--policy", default=str(EXAMPLES / "policy.json"))
     p = sub.add_parser("serve", help="live dashboard with a payment playground and human approval")
     p.add_argument("--policy", default=str(EXAMPLES / "policy.json"))
     p.add_argument("--requests", default=str(EXAMPLES / "requests.json"))
@@ -77,6 +79,14 @@ def main(argv=None):
             out = Path(a.out) if a.out else Path(a.log).parent / "report.html"
             out.write_text(dashboard.render(entries, policy), encoding="utf-8")
             print(f"Wrote {out}")
+        elif a.cmd == "redteam":
+            policy = validate_policy(json.loads(Path(a.policy).read_text(encoding="utf-8")))
+            res = redteam.run_suite(policy)
+            for sc in res["scenarios"]:
+                mark = _paint("PASS", "32") if sc["passed"] else _paint("FAIL", "31")
+                print(f"{mark}  {sc['kind']:<6} {sc['name']}")
+            print(f"\n{res['blocked']}/{res['attacks']} attacks blocked, {res['legit_ok']}/{res['legit']} honest payments cleared")
+            return 0 if res["blocked"] == res["attacks"] and res["legit_ok"] == res["legit"] else 1
         elif a.cmd == "serve":
             from .server import serve
             serve(a.policy, None if a.empty else a.requests, a.out, a.host, a.port)

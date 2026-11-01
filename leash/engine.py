@@ -20,7 +20,7 @@ REQUIRED = {
 WEIGHTS = {
     "frozen": 100, "breaker": 100, "invalid_amount": 80, "injection": 60, "lookalike": 55,
     "blocked_category": 50, "payee_limit": 40, "cap": 40, "budget": 35, "duplicate": 30,
-    "new_payee": 25, "velocity": 20, "approval": 15,
+    "new_payee": 25, "velocity": 20, "approval": 15, "structuring": 35,
 }
 SECURITY_CODES = {"injection", "lookalike"}
 
@@ -148,6 +148,12 @@ class Engine:
                 recent = [h for h in same if timedelta(0) <= t - datetime.fromisoformat(h["request"]["time"]) <= timedelta(hours=1)]
                 if len(recent) >= p["max_requests_per_payee_per_hour"]:
                     add("hold", "velocity", f"Unusual velocity: {len(recent)} requests to this payee in the last hour")
+                window = [h for h in same if timedelta(0) <= t - datetime.fromisoformat(h["request"]["time"]) <= timedelta(hours=1)
+                          and h["decision"] != "DENY"]
+                total = sum(h["request"]["amount"] for h in window) + amount
+                if window and amount <= p["approval_above"] < total:
+                    add("hold", "structuring", f"Possible structuring: {len(window) + 1} payments to this payee total "
+                        f"{total:.2f} in the last hour, above the {p['approval_above']:.2f} auto-approval limit")
             security = any(r["code"] in SECURITY_CODES for r in reasons)
             if security:
                 n = self.flags[req["agent"]] = self.flags.get(req["agent"], 0) + 1

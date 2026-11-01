@@ -72,6 +72,10 @@ def make_handler(store):
                 self._send(200, store.page(), "text/html")
             elif self.path == "/api/state":
                 self._send(200, store.state())
+            elif self.path == "/api/redteam":
+                self._send(200, store.state()["redteam"])
+            elif self.path == "/api/log":
+                self._send(200, store.log_path.read_text(encoding="utf-8"), "text/plain")
             else:
                 self._send(404, {"error": "not found"})
 
